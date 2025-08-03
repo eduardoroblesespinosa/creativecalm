@@ -18,27 +18,32 @@ const tripInfo = {
     calm: {
         title: "Calma Creativa",
         subtitle: "Una simulación segura y recreativa de los efectos positivos percibidos del cannabis en el cerebro.<br>El objetivo es ayudarte a encontrar un espacio de relajación y creatividad, como una herramienta de apoyo para reducir o dejar el consumo.",
-        background: "url('calm-background.png')"
+        background: "url('calm-background.png')",
+        music: 'calm-music.mp3'
     },
     dopamine: {
         title: "Euforia Energética",
         subtitle: "Una experiencia estimulante para aumentar la motivación y la energía positiva.<br>Utiliza estímulos visuales y auditivos vibrantes para generar una sensación de recompensa y euforia, ideal para empezar el día o una tarea creativa.",
-        background: "url('dopamine-background.png')"
+        background: "url('dopamine-background.png')",
+        music: 'dopamine-music.mp3'
     },
     oxytocin: {
         title: "Conexión Empática",
         subtitle: "Fomenta sentimientos de amor, confianza y conexión social.<br>Una experiencia diseñada para evocar calidez y empatía, recordándote la belleza de las relaciones humanas y el afecto.",
-        background: "url('oxytocin-background.png')"
+        background: "url('oxytocin-background.png')",
+        music: 'oxytocin-music.mp3'
     },
     psilocybin: {
         title: "Viaje Místico",
         subtitle: "Una exploración introspectiva y sensorial inspirada en los efectos de la psilocibina.<br>Diseñado para expandir la percepción, fomentar la creatividad y conectar con la naturaleza de la conciencia.",
-        background: "url('psilocybin-background.png')"
+        background: "url('psilocybin-background.png')",
+        music: 'psilocybin-music.mp3'
     },
     caapi: {
         title: "Viaje de Introspección",
         subtitle: "Inspirado en la liana Banisteriopsis caapi, esta experiencia te guía hacia un profundo viaje interior.<br>Un espacio para la reflexión, la sanación y la conexión con las raíces de tu ser.",
-        background: "url('caapi-background.png')"
+        background: "url('caapi-background.png')",
+        music: 'caapi-music.mp3'
     }
 };
 
@@ -91,12 +96,7 @@ function updateTripInfo() {
 
 const audioManager = {
     audioContext: null,
-    calmMusicBuffer: null,
-    dopamineMusicBuffer: null,
-    oxytocinMusicBuffer: null,
-    psilocybinMusicBuffer: null,
-    caapiMusicBuffer: null,
-    natureBuffer: null,
+    soundBuffers: new Map(),
     musicSource: null,
     natureSource: null,
     binauralOscillators: [],
@@ -143,52 +143,44 @@ const audioManager = {
         this.isInitialized = true;
     },
 
-    async _loadSounds() {
-        try {
-            const [calmMusicResponse, dopamineMusicResponse, oxytocinMusicResponse, psilocybinMusicResponse, caapiMusicResponse, natureResponse] = await Promise.all([
-                fetch('calm-music.mp3'),
-                fetch('dopamine-music.mp3'),
-                fetch('oxytocin-music.mp3'),
-                fetch('psilocybin-music.mp3'),
-                fetch('caapi-music.mp3'),
-                fetch('nature-sounds.mp3')
-            ]);
-            const [calmMusicArrayBuffer, dopamineMusicArrayBuffer, oxytocinMusicArrayBuffer, psilocybinMusicArrayBuffer, caapiMusicArrayBuffer, natureArrayBuffer] = await Promise.all([
-                calmMusicResponse.arrayBuffer(),
-                dopamineMusicResponse.arrayBuffer(),
-                oxytocinMusicResponse.arrayBuffer(),
-                psilocybinMusicResponse.arrayBuffer(),
-                caapiMusicResponse.arrayBuffer(),
-                natureResponse.arrayBuffer()
-            ]);
-            [this.calmMusicBuffer, this.dopamineMusicBuffer, this.oxytocinMusicBuffer, this.psilocybinMusicBuffer, this.caapiMusicBuffer, this.natureBuffer] = await Promise.all([
-                this.audioContext.decodeAudioData(calmMusicArrayBuffer),
-                this.audioContext.decodeAudioData(dopamineMusicArrayBuffer),
-                this.audioContext.decodeAudioData(oxytocinMusicArrayBuffer),
-                this.audioContext.decodeAudioData(psilocybinMusicArrayBuffer),
-                this.audioContext.decodeAudioData(caapiMusicArrayBuffer),
-                this.audioContext.decodeAudioData(natureArrayBuffer)
-            ]);
-        } catch (error) {
-            console.error('Error loading audio:', error);
+    async _loadSound(url) {
+        if (this.soundBuffers.has(url)) {
+            return this.soundBuffers.get(url);
         }
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            this.soundBuffers.set(url, audioBuffer);
+            return audioBuffer;
+        } catch (error) {
+            console.error(`Error loading audio file: ${url}`, error);
+            return null;
+        }
+    },
+
+    async _loadSounds() {
+        const soundFiles = [
+            tripInfo.calm.music,
+            tripInfo.dopamine.music,
+            tripInfo.oxytocin.music,
+            tripInfo.psilocybin.music,
+            tripInfo.caapi.music,
+            'nature-sounds.mp3'
+        ];
+        await Promise.all(soundFiles.map(file => this._loadSound(file)));
     },
 
     play(tripType, binauralOption) {
         if (!this.isInitialized || this.isPlaying) return;
         
-        let musicBuffer;
-        if (tripType === 'dopamine') {
-            musicBuffer = this.dopamineMusicBuffer;
-        } else if (tripType === 'oxytocin') {
-            musicBuffer = this.oxytocinMusicBuffer;
-        } else if (tripType === 'psilocybin') {
-            musicBuffer = this.psilocybinMusicBuffer;
-        } else if (tripType === 'caapi') {
-            musicBuffer = this.caapiMusicBuffer;
-        } else {
-            musicBuffer = this.calmMusicBuffer;
+        const trip = tripInfo[tripType];
+        if (!trip || !trip.music) {
+            console.error("Invalid trip type or music not defined:", tripType);
+            return;
         }
+        
+        const musicBuffer = this.soundBuffers.get(trip.music);
 
         if (!musicBuffer) {
             console.error("Music buffer for the selected trip is not loaded.");
@@ -207,12 +199,15 @@ const audioManager = {
         this.musicSource.start();
         
         // Play Nature Sounds (only for calm trip)
-        if (tripType === 'calm' && this.natureBuffer) {
-            this.natureSource = this.audioContext.createBufferSource();
-            this.natureSource.buffer = this.natureBuffer;
-            this.natureSource.loop = true;
-            this.natureSource.connect(this.natureGain);
-            this.natureSource.start();
+        if (tripType === 'calm') {
+            const natureBuffer = this.soundBuffers.get('nature-sounds.mp3');
+            if (natureBuffer) {
+                this.natureSource = this.audioContext.createBufferSource();
+                this.natureSource.buffer = natureBuffer;
+                this.natureSource.loop = true;
+                this.natureSource.connect(this.natureGain);
+                this.natureSource.start();
+            }
         }
 
         // Play Binaural Beats
