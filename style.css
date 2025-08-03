@@ -1,0 +1,89 @@
+body {
+    background-color: #000;
+    color: #fff;
+    overflow: hidden; /* Hide scrollbars */
+    background-image: url('calm-background.png'); /* Start with the first intro background */
+    background-size: cover;
+    background-position: center;
+    transition: background-image 1s ease-in-out; /* Smooth transition for background changes */
+}
+
+#intro-screen, #start-screen, #end-screen {
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+}
+
+.btn-group .btn-outline-primary {
+    --bs-btn-color: #a7a7a7;
+    --bs-btn-border-color: #a7a7a7;
+    --bs-btn-hover-bg: #0d6efd;
+    --bs-btn-hover-border-color: #0d6efd;
+    --bs-btn-active-bg: #0d6efd;
+    --bs-btn-active-border-color: #0d6efd;
+}
+
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+#experience-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    pointer-events: none; /* Make text non-interactive */
+}
+
+/* Fade animations for intro text */
+.text-fade-in {
+    animation: fadeIn 1s ease-in forwards;
+}
+
+.text-fade-out {
+    animation: textFadeOut 1s ease-out forwards;
+}
+
+@keyframes textFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Fade in and out animation for the helper text */
+.fade-in-out {
+    opacity: 0;
+    animation: fadeInOut 10s ease-in-out forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Screen transitions */
+.screen-fade-out {
+    animation: fadeOut 1.5s ease-out forwards;
+}
+
+.screen-fade-in {
+    animation: fadeIn 1.5s ease-in forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; display: none; }
+}
